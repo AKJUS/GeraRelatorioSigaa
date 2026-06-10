@@ -15,7 +15,8 @@ def somaFaltas(dadosUltimoTrimestre, limiarReprovFreq, trimestre):
         linhaAluno = dadosUltimoTrimestre.iloc[i]
         freqAlunoTotal = 0
         for j in range(6, colunas, 4): #Primeira coluna da frequência é a 6, próxima é a 10, ...
-            freqAlunoTotal+= int(linhaAluno[j])
+            if linhaAluno.iloc[j] != '-':
+                freqAlunoTotal+= int(linhaAluno.iloc[j])
 
         if freqAlunoTotal>= limiarReprovFreq[0]:
             listaFreqTodosAlunos.append([freqAlunoTotal, "Reprovado"])
@@ -35,19 +36,7 @@ def somaFaltas(dadosUltimoTrimestre, limiarReprovFreq, trimestre):
 3º ano = 1360 -> 25% = 340 faltas
 '''
 
-def calculaLimiarPerigoReprovacaoFreq(trimestre):
-    resposta = input("\n\nTrata-se do Técnico Integrado em Informática? (sim ou nao)").upper()
-
-    if resposta == 'SIM' or resposta == 'S':
-        nAulas1o = 1360
-        nAulas2o = 1280
-        nAulas3o = 1360
-    else:
-        print("Responda o nº de aulas por ano (Técnico + BNC) segundo o PPC do curso:")
-        nAulas1o = int(input("\t\t 1o ano - qual o número de aulas? "))
-        nAulas2o = int(input("\t\t 2o ano - qual o número de aulas? "))
-        nAulas3o = int(input("\t\t 3o ano - qual o número de aulas? "))
-
+def calculaLimiarPerigoReprovacaoFreq(nAulas1o, nAulas2o, nAulas3o, trimestre):
     limiarRepr1o = round(nAulas1o * 0.25)
     limiarRepr2o = round(nAulas2o * 0.25)
     limiarRepr3o = round(nAulas3o * 0.25)
@@ -57,3 +46,4 @@ def calculaLimiarPerigoReprovacaoFreq(trimestre):
     limiarCritico3o = round((limiarRepr3o/3)*0.90) * trimestre
 
     return [[limiarRepr1o, limiarCritico1o], [limiarRepr2o, limiarCritico2o], [limiarRepr3o, limiarCritico3o]]
+    

@@ -5,7 +5,7 @@
 # autora    : Bianca Portes de Castro,
 #            IFSEMG/DACC/Ciência da Computação
 import pandas as pd
-import manipulaarquivos as man_arq
+from manipulaarquivos import ManipuladorArquivos
 import calculanotas as calcNota
 import calculafrequencia as calcFreq
 import os
@@ -32,45 +32,47 @@ if __name__ == '__main__':
 
     trimestre = int(input("\n\nEm qual trimestre estamos? (1, 2 ou 3)"))
 
-    limiarReprovFreq = calcFreq.calculaLimiarPerigoReprovacaoFreq(trimestre)
+    resposta = input("Trata-se do Técnico Integrado em Informática? (sim ou nao)").upper()
+    if resposta in ('SIM', 'S'):
+        #1o = 760+160+400, 2o = 760+200+320 e 3o = 720+240+240
+        nAulas1o, nAulas2o, nAulas3o = 1320, 1280, 1200
+    else:
+        nAulas1o = int(input("\t\t 1o ano - qual o número de aulas? "))
+        nAulas2o = int(input("\t\t 2o ano - qual o número de aulas? "))
+        nAulas3o = int(input("\t\t 3o ano - qual o número de aulas? "))
+    limiarReprovFreq = calcFreq.calculaLimiarPerigoReprovacaoFreq(nAulas1o, nAulas2o, nAulas3o, trimestre)
 
     print(limiarReprovFreq)
 
 
     for ano in range(1, 4):
         #2) Altero a variável 'path' para dizer qual a pasta eu quero que a análise seja feita
-        pasta = "ano" + str(ano) + "/"
-        man_arq.atualizaPath(pasta)
-
+        man = ManipuladorArquivos(f"ano{ano}/")
+        
         #3) Gerará o CSV destes arquivos HTML
-        man_arq.abreArquivoHTML()
-
-        df = man_arq.abreArquivoCSV()
+        man.abre_arquivo_html()
+        df = man.abreArquivoCSV()
 
         listaFreqTodosAlunos = calcFreq.somaFaltas(df, limiarReprovFreq[ano-1], trimestre)
 
         #Gera arquivo na pasta com os nomes das disciplinas daquele ano
-        man_arq.geraArquivoComNomeDisciplinas(df)
+        man.geraArquivoComNomeDisciplinas(df,ordenar = False)
 
         #5) Lê os nomes das disciplinas daquele ano
-        disciplinas = man_arq.todasDisciplinas()
-        disc = disciplinas[0]
-        #Retirei o '\n' da 1ª disciplina
-        disc = disc[:-1]
-
+        disciplinas = man.todasDisciplinas()
 
         arqSaida = df.loc[1:,'NOME'] #nomes alunos
 
         #Inicio a junção dos arquivos CSVs para cada disciplina
         for disc in disciplinas:
-            disc = disc[:-1] #Retirei o '\n' da 1ª disciplina
+            disc = disc.strip() #Retirei o '\n' da 1ª disciplina
             arqAux = calcNota.media(df, disc)
             arqSaida = pd.concat([arqSaida,arqAux],axis=1 )
             arqSaida = arqSaida.rename(columns={ disc +'.3': disc})
 
         arqSaida = pd.concat([arqSaida, listaFreqTodosAlunos], axis=1)
 
-        man_arq.geraSaida(arqSaida, "somaDasFaltasEMedias.csv")
+        man.geraSaida(arqSaida, "somaDasFaltasEMedias.csv")
 
 
         print("Arquivos gerados! Confira nas pastas.")

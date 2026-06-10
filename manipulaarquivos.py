@@ -8,107 +8,78 @@
 import pandas as pd
 import os
 
-path = ""
+class ManipuladorArquivos:
+    def __init__(self, path: str):
+        self.path = path
 
-def atualizaPath(p):
-    global path
-    path = p
+    def abre_arquivo_html(self):
+        arquivos = [f for f in os.listdir(self.path) if f.endswith(".html")]
 
-def abreArquivoHTML():
-    arquivos = [_ for _ in os.listdir(path) if _.endswith(".html")]
-    if (len(arquivos) > 1) or (len(arquivos) == 0) :
-        try:
-            raise KeyboardInterrupt
-        finally:
-            print("#"*50)
-            print('''
-            ATENÇÃO!!!
+        if (len(arquivos) > 1) or (len(arquivos) == 0) :
+            try:
+                raise KeyboardInterrupt
+            finally:
+                print("#"*50)
+                print('''
+                ATENÇÃO!!!
 
-            Deixe apenas UM arquivo .HTML referente ao conselho na pasta ''', path, "\n\n")
+                Deixe apenas UM arquivo .HTML referente ao conselho na pasta ''', self.path, "\n\n")
 
-            print("#"*50)
+                print("#"*50)
 
-    caminho = path + arquivos[0]
-    table = pd.read_html(caminho)
-    df = table[0]
-    df = pd.DataFrame(df)
-    df = df.rename(columns={"Unnamed: 1_level_0": 'NOME'})
-    geraArquivoCSV(df, caminho[:-4] + "csv" )
+        caminho = os.path.join(self.path , arquivos[0])
+        df = pd.read_html(caminho)[0]
+        df = df.rename(columns={"Unnamed: 1_level_0": 'NOME'})
+        self.geraArquivoCSV(df, caminho[:-4] + "csv" )
 
-def geraArquivoCSV(df, caminho):
-    #apaga arquivos .csv que estejam na pasta
-    arquivos = [_ for _ in os.listdir(path) if _.endswith(".csv")]
-    for csv in arquivos:
-        os.remove(path + csv)
+        
 
-    #cria o arquivo csv
-    df.to_csv(caminho)
+    def geraArquivoCSV(self, df, caminho):
+        #apaga arquivos .csv que estejam na pasta
+        arquivos = [_ for _ in os.listdir(self.path) if _.endswith(".csv")]
+        for csv in arquivos:
+            os.remove(os.path.join(self.path, csv))
 
-def abreArquivoCSV():
-    arquivos = [_ for _ in os.listdir(path) if _.endswith(".csv")]
+        #cria o arquivo csv
+        df.to_csv(caminho)
 
-    if (len(arquivos) > 1) or (len(arquivos) == 0) :
-        try:
-            raise KeyboardInterrupt
-        finally:
-            print("#"*50)
-            print('''
-            Não conseguiu localizar o arquivo .CSV correto em ''', path, "\n\n")
+    def abreArquivoCSV(self):
+        arquivos = [_ for _ in os.listdir(self.path) if _.endswith(".csv")]
 
-            print("#"*50)
+        if (len(arquivos) != 1) :
+            raise ValueError(
+                f"Esperado exatamente 1 arquivo .HTML em '{self.path}', "
+                f"encontrado {len(arquivos)}."
+            )
 
-    caminho = path + arquivos[0]
-    table = pd.read_csv(caminho)
-    df = pd.DataFrame(table)
-
-    return df
+        caminho = os.path.join(self.path, arquivos[0])
+        return pd.read_csv(caminho)
 
 
-def geraArquivoComNomeDisciplinas(ultimoTrimestre):
-    nomes = ultimoTrimestre.iloc[0].index
-    aux = sorted(set(nomes[4:]))
-    for i in range(1, len(aux)):
-        if (i%4 == 0):
-            continue
-        aux[i] = aux[i][:-2]
+    def geraArquivoComNomeDisciplinas(self, ultimoTrimestre, ordenar: bool = True):
+        COLUNAS_POR_DISCIPLINA = 4  # N1, R, F, S
+        colunas = ultimoTrimestre.iloc[0].index[4:]  # pula as 4 primeiras (matrícula, nome, etc.)
+        
+        nomes_disciplinas = []
+        for i, col in enumerate(colunas):
+            # A coluna de nota (N1) é a primeira de cada grupo de 4
+            if i % COLUNAS_POR_DISCIPLINA == 0:
+                # Remove sufixo de nível como '.1', '.2', '.3'
+                nome = col.split('.')[0] if '.' in col else col
+                nomes_disciplinas.append(nome)
+        
+        if ordenar:
+            nomes_disciplinas = sorted(nomes_disciplinas)
 
-    nomes = sorted(set(aux))
-    with open(path+"/nomes_disciplinas.txt", 'w') as file:
-        for n in nomes:
-            file.write(n + "\n")
-        file.close()
+        with open(os.path.join(self.path, "nomes_disciplinas.txt"), 'w') as file:
+            for nome in nomes_disciplinas:
+                file.write(nome + "\n")
 
-def todasDisciplinas():
-    caminho = path + "nomes_disciplinas.txt"
-    with open(caminho) as file:
-        discs = file.readlines()
-    return discs
+    def todasDisciplinas(self):
+        caminho = os.path.join(self.path, "nomes_disciplinas.txt")
+        with open(caminho) as file:
+            return [linha.strip() for linha in file.readlines()]
 
-def geraSaida(df, texto):
-    caminho = path + texto
-    df.to_csv(caminho)
-    
-'''
-def abreArquivoInicialHTML(num):
-    caminho = path + str(num) + 't.html'
-    table = pd.read_html(caminho)
-    df = table[0]
-    df = pd.DataFrame(df)
-    df = df.rename(columns={"Unnamed: 1_level_0": 'NOME'})
-    geraSaidaAuxiliarCSV(df, num)
-
-def abreArquivoNum(num):
-    caminho = path + str(num) + 't.csv'
-    table = pd.read_csv(caminho)
-    df = pd.DataFrame(table)
-
-    return df
-
-
-
-def geraSaidaAuxiliarCSV(df, num):
-    caminho = path + str(num)+'t.csv'
-    df.to_csv(caminho)
-
-
-'''
+    def geraSaida(self, df, nome_arquivo):
+        caminho = os.path.join(self.path, nome_arquivo)
+        df.to_csv(caminho)
